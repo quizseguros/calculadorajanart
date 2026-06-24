@@ -186,6 +186,53 @@
   }
 
   small.hint { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 4px; }
+
+  .btn-gerar-orcamento {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .btn-gerar-orcamento:hover { opacity: 0.92; }
+
+  .orcamento-erro { color: var(--danger); }
+
+  .orcamento-preview {
+    background: var(--accent-soft);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    white-space: pre-wrap;
+    color: var(--ink);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .orcamento-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-whatsapp, .btn-copiar {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-whatsapp { background: #25d366; color: white; }
+  .btn-copiar { background: var(--ink); color: var(--bg); }
+
+  .copiado-feedback { display: none; text-align: center; color: var(--accent); margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -314,6 +361,36 @@
     <div class="total-final">
       <span class="label">Total da encomenda</span>
       <span class="valor" id="totalFinal">R$ 0,00</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Gerar orçamento</h2>
+    <small class="hint">Pra mandar pro cliente — só com o que ela precisa saber, sem os detalhes internos de custo.</small>
+
+    <div class="field" style="margin-top:12px">
+      <label for="orcNomeCliente">Nome do cliente</label>
+      <input type="text" id="orcNomeCliente" placeholder="ex: Maria">
+    </div>
+    <div class="field">
+      <label for="orcDescricao">Descrição do que ela vai receber</label>
+      <input type="text" id="orcDescricao" placeholder="ex: Retrato realista colorido, 30x40cm">
+    </div>
+    <div class="field">
+      <label for="orcPrazo">Prazo de entrega</label>
+      <input type="text" id="orcPrazo" placeholder="ex: 7 dias úteis">
+    </div>
+
+    <button class="btn-gerar-orcamento" id="btnGerarOrcamento" type="button">Gerar orçamento</button>
+    <small class="hint orcamento-erro" id="orcamentoErro" style="display:none">Preenche nome do cliente, descrição e prazo antes de gerar.</small>
+
+    <div id="orcamentoResultado" style="display:none; margin-top:16px">
+      <div class="orcamento-preview" id="orcamentoTexto"></div>
+      <div class="orcamento-acoes">
+        <button class="btn-whatsapp" id="btnWhatsapp" type="button">Compartilhar no WhatsApp</button>
+        <button class="btn-copiar" id="btnCopiar" type="button">Copiar mensagem</button>
+      </div>
+      <small class="hint copiado-feedback" id="copiadoFeedback">Mensagem copiada!</small>
     </div>
   </div>
 
@@ -507,6 +584,8 @@
   $('margemErro').addEventListener('input', calcular);
 
   // --- Cálculo principal ---
+  let ultimoTotal = 0;
+
   function calcular() {
     const horas = parseFloat($('tempoServico').value) || 0;
     const maoDeObra = horas * valorHora();
@@ -557,7 +636,72 @@
     if (urgenciaValor) linha(`Urgência (${urgenciaPercent}%)`, urgenciaValor);
 
     $('totalFinal').textContent = fmt(total);
+    ultimoTotal = total;
   }
+
+  // --- Gerar orçamento (só o que o cliente precisa ver) ---
+  const orcamentoResultado = $('orcamentoResultado');
+  const orcamentoTexto = $('orcamentoTexto');
+  const orcamentoErro = $('orcamentoErro');
+  const copiadoFeedback = $('copiadoFeedback');
+
+  $('btnGerarOrcamento').addEventListener('click', () => {
+    const nome = $('orcNomeCliente').value.trim();
+    const descricao = $('orcDescricao').value.trim();
+    const prazo = $('orcPrazo').value.trim();
+
+    if (!nome || !descricao || !prazo) {
+      orcamentoErro.style.display = 'block';
+      orcamentoResultado.style.display = 'none';
+      return;
+    }
+    orcamentoErro.style.display = 'none';
+
+    const validoAte = new Date();
+    validoAte.setDate(validoAte.getDate() + 7);
+    const validoAteFormatado = validoAte.toLocaleDateString('pt-BR');
+
+    const texto = [
+      '✨ Orçamento — Janaina Art ✨',
+      '',
+      `👤 Cliente: ${nome}`,
+      `🎨 Descrição: ${descricao}`,
+      '',
+      `💰 Valor: ${fmt(ultimoTotal)}`,
+      `📅 Prazo de entrega: ${prazo}`,
+      '',
+      '📌 Algumas observações importantes:',
+      '• O prazo pode variar um pouco dependendo da demanda do momento — qualquer mudança eu aviso com antecedência.',
+      `• Esse valor é válido até ${validoAteFormatado}.`,
+      '• Se o pedido mudar (tamanho, estilo ou algum extra), o valor pode ser ajustado.',
+      '',
+      '💛 Vou cuidar do seu desenho com todo carinho! Qualquer dúvida, é só me chamar. 😊',
+    ].join('\n');
+
+    orcamentoTexto.textContent = texto;
+    orcamentoResultado.style.display = 'block';
+    copiadoFeedback.style.display = 'none';
+  });
+
+  $('btnWhatsapp').addEventListener('click', () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(orcamentoTexto.textContent)}`, '_blank');
+  });
+
+  $('btnCopiar').addEventListener('click', async () => {
+    const texto = orcamentoTexto.textContent;
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    copiadoFeedback.style.display = 'block';
+    setTimeout(() => { copiadoFeedback.style.display = 'none'; }, 2500);
+  });
 
   // --- Reset (mantém meta mensal e materiais cadastrados, só limpa o uso desta encomenda) ---
   $('btnReset').addEventListener('click', () => {
@@ -575,6 +719,11 @@
     urgenciaHint.style.display = 'none';
     $('margemLucro').value = 20;
     $('margemErro').value = 10;
+    $('orcNomeCliente').value = '';
+    $('orcDescricao').value = '';
+    $('orcPrazo').value = '';
+    orcamentoResultado.style.display = 'none';
+    orcamentoErro.style.display = 'none';
     calcular();
   });
 
