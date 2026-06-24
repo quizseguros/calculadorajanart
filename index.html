@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Preço — Janaina Art</title>
+<style>
+  :root {
+    --bg: #f7f3ed;
+    --card: #ffffff;
+    --ink: #2b2622;
+    --ink-soft: #6b6258;
+    --accent: #b5704f;
+    --accent-soft: #f1e3d8;
+    --border: #e6ddd2;
+    --total-bg: #2b2622;
+    --total-ink: #f7f3ed;
+    --danger: #b5704f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 28px;
+    margin: 0 0 6px;
+  }
+  header p { color: var(--ink-soft); margin: 0; font-size: 14px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .card h2 {
+    font-size: 16px;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h2 .badge {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: bold;
+  }
+
+  label { display: block; font-size: 13px; color: var(--ink-soft); margin-bottom: 4px; }
+  .field { margin-bottom: 14px; }
+  input[type=number], input[type=text], select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    background: #fffdfb;
+    color: var(--ink);
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+
+  .row { display: flex; gap: 10px; }
+  .row > .field { flex: 1; min-width: 0; }
+
+  .hourly-rate {
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--accent);
+    margin-top: 4px;
+  }
+  .hourly-rate strong { font-size: 16px; }
+
+  .materiais-lista { margin-bottom: 10px; }
+
+  .material-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    background: #fffdfb;
+  }
+  .material-card-top { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .material-card-top input[type=text] { flex: 1; font-weight: 600; }
+  .material-grid { display: flex; gap: 8px; }
+  .material-grid .field { flex: 1; margin-bottom: 10px; }
+  .material-grid label, .material-usado label { font-size: 12px; }
+  .material-usado { margin-bottom: 6px; }
+  .material-custo { color: var(--accent); font-weight: 600; }
+
+  .btn-add {
+    background: none;
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+  }
+  .btn-add:hover { background: var(--accent-soft); }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .btn-remove:hover { color: var(--danger); }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-row .label-main { font-size: 14px; }
+  .toggle-row .extra-value { width: 110px; }
+  .toggle-row .extra-value input { padding: 6px 8px; font-size: 13px; }
+
+  .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: var(--border); border-radius: 26px; transition: 0.2s;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 20px; width: 20px;
+    left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s;
+  }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider::before { transform: translateX(18px); }
+
+  .complexidade-opcoes { display: flex; flex-direction: column; gap: 8px; }
+  .complexidade-opcoes label {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .complexidade-opcoes label.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .complexidade-opcoes input { width: auto; margin: 0; }
+  .complexidade-opcoes .mult { margin-left: auto; color: var(--ink-soft); font-size: 13px; }
+
+  .resultado {
+    background: var(--total-bg);
+    color: var(--total-ink);
+    border-radius: 16px;
+    padding: 22px;
+  }
+  .resultado h2 { color: var(--total-ink); opacity: 0.7; font-weight: 500; }
+  .breakdown { font-size: 13px; opacity: 0.85; margin-bottom: 12px; }
+  .breakdown div { display: flex; justify-content: space-between; padding: 3px 0; }
+  .breakdown .negativo { opacity: 0.7; }
+  .total-final { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 12px; }
+  .total-final .label { font-size: 15px; opacity: 0.8; }
+  .total-final .valor { font-size: 32px; font-weight: bold; font-family: Georgia, serif; }
+
+  .reset-link {
+    text-align: center; margin-top: 18px;
+  }
+  .reset-link button {
+    background: none; border: none; color: var(--ink-soft);
+    font-size: 13px; text-decoration: underline; cursor: pointer;
+  }
+
+  small.hint { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Calculadora de Preço</h1>
+    <p>Janaina Art — pra precificar cada encomenda com confiança</p>
+  </header>
+
+  <div class="card">
+    <h2><span class="badge">1</span> Sua meta (preencha uma vez)</h2>
+    <div class="field">
+      <label for="metaMensal">Quanto você quer ganhar por mês (R$)</label>
+      <input type="number" id="metaMensal" min="0" step="50" placeholder="ex: 3000">
+      <small class="hint">O que você quer ter de sobra no fim do mês, somando todas as encomendas.</small>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="horasSemana">Quantas horas quer trabalhar por semana</label>
+        <input type="number" id="horasSemana" min="1" step="1" placeholder="ex: 20">
+        <small class="hint">Quanto tempo por semana você quer dedicar a desenhar (não precisa ser o dia todo).</small>
+      </div>
+      <div class="field">
+        <label for="diasMes">Quantos dias quer trabalhar por mês</label>
+        <input type="number" id="diasMes" min="1" step="1" placeholder="ex: 20">
+        <small class="hint">Ajuda a ver quanto você precisa faturar por dia de trabalho.</small>
+      </div>
+    </div>
+    <div class="hourly-rate">
+      Seu valor por hora: <strong id="valorHoraDisplay">R$ 0,00</strong><br>
+      Seu valor por dia: <strong id="valorDiaDisplay">R$ 0,00</strong>
+    </div>
+    <small class="hint">Isso fica salvo no navegador — você não precisa preencher de novo na próxima encomenda.</small>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">2</span> Tempo desta encomenda</h2>
+    <div class="field">
+      <label for="tempoServico">Tempo estimado do desenho (em horas)</label>
+      <input type="number" id="tempoServico" min="0" step="0.5" placeholder="ex: 4">
+      <small class="hint">Quanto tempo você gasta nesse desenho específico, do esboço à finalização.</small>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">3</span> Materiais usados</h2>
+    <small class="hint">Liste o que você vai gastar nessa encomenda — papel, lápis, tinta — e quanto cada um custa.</small>
+    <div class="materiais-lista" id="materiaisLista" style="margin-top:12px"></div>
+    <button class="btn-add" id="btnAddMaterial" type="button">+ adicionar material</button>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">4</span> Nível de complexidade</h2>
+    <small class="hint">Quanto mais detalhe, personagem ou dificuldade técnica, maior o multiplicador sobre o custo.</small>
+    <div class="complexidade-opcoes" id="complexidadeOpcoes" style="margin-top:12px">
+      <label data-mult="1"><input type="radio" name="complexidade" value="1"> Simples <span class="mult">x1.0</span></label>
+      <label data-mult="1.2"><input type="radio" name="complexidade" value="1.2"> Médio <span class="mult">x1.2</span></label>
+      <label data-mult="1.5"><input type="radio" name="complexidade" value="1.5"> Complexo <span class="mult">x1.5</span></label>
+      <label data-mult="2"><input type="radio" name="complexidade" value="2"> Muito complexo <span class="mult">x2.0</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">5</span> Extras</h2>
+    <small class="hint">Marque os serviços extras que essa encomenda vai ter, e quanto cada um custa.</small>
+
+    <div class="toggle-row" style="margin-top:8px">
+      <span class="label-main">Entrega</span>
+      <div class="extra-value" id="entregaValorWrap" style="display:none">
+        <input type="number" id="entregaValor" min="0" step="1" placeholder="R$">
+      </div>
+      <label class="switch"><input type="checkbox" id="entregaCheck"><span class="slider"></span></label>
+    </div>
+
+    <div class="toggle-row">
+      <span class="label-main">Embrulho pra presente</span>
+      <div class="extra-value" id="embrulhoValorWrap" style="display:none">
+        <input type="number" id="embrulhoValor" min="0" step="1" placeholder="R$">
+      </div>
+      <label class="switch"><input type="checkbox" id="embrulhoCheck"><span class="slider"></span></label>
+    </div>
+
+    <div class="toggle-row">
+      <span class="label-main">Enquadramento</span>
+      <div class="extra-value" id="enquadramentoValorWrap" style="display:none">
+        <input type="number" id="enquadramentoValor" min="0" step="1" placeholder="R$">
+      </div>
+      <label class="switch"><input type="checkbox" id="enquadramentoCheck"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">6</span> Margem de lucro</h2>
+    <div class="field">
+      <label for="margemLucro">Lucro desejado (%)</label>
+      <input type="number" id="margemLucro" min="0" max="200" step="1" value="20">
+      <small class="hint">Quanto você quer ganhar de lucro de verdade, além de cobrir custo e seu valor por hora.</small>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">7</span> Margem de erro</h2>
+    <div class="field">
+      <label for="margemErro">Reserva pra imprevisto (%)</label>
+      <input type="number" id="margemErro" min="0" max="100" step="1" value="10">
+      <small class="hint">Diferente do lucro — isso é só uma reserva pra material extra, retrabalho ou imprevisto. 10% é um bom ponto de partida.</small>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="badge">8</span> Urgência</h2>
+    <div class="toggle-row">
+      <span class="label-main">Cliente pediu urgência</span>
+      <div class="extra-value" id="urgenciaValorWrap" style="display:none">
+        <input type="number" id="urgenciaPercent" min="0" max="200" step="5" value="25">
+      </div>
+      <label class="switch"><input type="checkbox" id="urgenciaCheck"><span class="slider"></span></label>
+    </div>
+    <small class="hint" id="urgenciaHint" style="display:none">% adicional sobre o subtotal por furar a fila.</small>
+  </div>
+
+  <div class="resultado">
+    <h2>Preço sugerido</h2>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="total-final">
+      <span class="label">Total da encomenda</span>
+      <span class="valor" id="totalFinal">R$ 0,00</span>
+    </div>
+  </div>
+
+  <div class="reset-link">
+    <button type="button" id="btnReset">Limpar esta encomenda (mantém sua meta e seus materiais)</button>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'janaina-art-calculadora-config';
+
+  const $ = (id) => document.getElementById(id);
+
+  const fmt = (n) => (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  function loadConfig() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveConfig(partial) {
+    const current = loadConfig();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.assign(current, partial)));
+  }
+
+  // --- Meta mensal ---
+  const SEMANAS_POR_MES = 4;
+  const metaMensalEl = $('metaMensal');
+  const horasSemanaEl = $('horasSemana');
+  const diasMesEl = $('diasMes');
+  const valorHoraDisplay = $('valorHoraDisplay');
+  const valorDiaDisplay = $('valorDiaDisplay');
+
+  function valorHora() {
+    const meta = parseFloat(metaMensalEl.value) || 0;
+    const horasMes = (parseFloat(horasSemanaEl.value) || 0) * SEMANAS_POR_MES;
+    return horasMes > 0 ? meta / horasMes : 0;
+  }
+
+  function valorDia() {
+    const meta = parseFloat(metaMensalEl.value) || 0;
+    const dias = parseFloat(diasMesEl.value) || 0;
+    return dias > 0 ? meta / dias : 0;
+  }
+
+  function atualizarValorHora() {
+    valorHoraDisplay.textContent = fmt(valorHora());
+    valorDiaDisplay.textContent = fmt(valorDia());
+    saveConfig({
+      metaMensal: metaMensalEl.value,
+      horasSemana: horasSemanaEl.value,
+      diasMes: diasMesEl.value,
+    });
+    calcular();
+  }
+
+  metaMensalEl.addEventListener('input', atualizarValorHora);
+  horasSemanaEl.addEventListener('input', atualizarValorHora);
+  diasMesEl.addEventListener('input', atualizarValorHora);
+
+  // --- Materiais dinâmicos ---
+  const materiaisLista = $('materiaisLista');
+
+  function criarLinhaMaterial(nome, valorPago, qtdPacote) {
+    const row = document.createElement('div');
+    row.className = 'material-card';
+    row.innerHTML = `
+      <div class="material-card-top">
+        <input type="text" class="mat-nome" placeholder="ex: Lápis 2B" value="${nome || ''}">
+        <button type="button" class="btn-remove" title="remover">&times;</button>
+      </div>
+      <div class="material-grid">
+        <div class="field">
+          <label>Valor pago (pacote ou unidade)</label>
+          <input type="number" class="mat-valor" min="0" step="0.5" placeholder="R$" value="${valorPago || ''}">
+        </div>
+        <div class="field">
+          <label>Quantas unidades vêm no pacote</label>
+          <input type="number" class="mat-qtdpacote" min="1" step="1" placeholder="ex: 12" value="${qtdPacote || ''}">
+        </div>
+      </div>
+      <div class="field material-usado">
+        <label>Quanto vai usar nesta encomenda</label>
+        <input type="number" class="mat-qtdusada" min="0" step="0.1" placeholder="ex: 1">
+      </div>
+      <small class="hint material-custo">Custo nesta encomenda: R$ 0,00</small>
+    `;
+    const nomeInput = row.querySelector('.mat-nome');
+    const valorInput = row.querySelector('.mat-valor');
+    const qtdPacoteInput = row.querySelector('.mat-qtdpacote');
+    const qtdUsadaInput = row.querySelector('.mat-qtdusada');
+    const removeBtn = row.querySelector('.btn-remove');
+
+    const atualizarEPersistir = () => { calcular(); persistirMateriais(); };
+    nomeInput.addEventListener('input', atualizarEPersistir);
+    valorInput.addEventListener('input', atualizarEPersistir);
+    qtdPacoteInput.addEventListener('input', atualizarEPersistir);
+    qtdUsadaInput.addEventListener('input', calcular);
+    removeBtn.addEventListener('click', () => { row.remove(); atualizarEPersistir(); });
+
+    materiaisLista.appendChild(row);
+  }
+
+  function persistirMateriais() {
+    const linhas = [...materiaisLista.querySelectorAll('.material-card')].map((row) => ({
+      nome: row.querySelector('.mat-nome').value,
+      valor: row.querySelector('.mat-valor').value,
+      qtdPacote: row.querySelector('.mat-qtdpacote').value,
+    }));
+    saveConfig({ materiaisFavoritos: linhas });
+  }
+
+  $('btnAddMaterial').addEventListener('click', () => {
+    criarLinhaMaterial('', '', '');
+  });
+
+  function custoMaterial(row) {
+    const valor = parseFloat(row.querySelector('.mat-valor').value) || 0;
+    const qtdPacote = parseFloat(row.querySelector('.mat-qtdpacote').value) || 1;
+    const qtdUsada = parseFloat(row.querySelector('.mat-qtdusada').value) || 0;
+    const custoUnitario = qtdPacote > 0 ? valor / qtdPacote : 0;
+    return custoUnitario * qtdUsada;
+  }
+
+  function atualizarCustosMateriais() {
+    materiaisLista.querySelectorAll('.material-card').forEach((row) => {
+      row.querySelector('.material-custo').textContent = `Custo nesta encomenda: ${fmt(custoMaterial(row))}`;
+    });
+  }
+
+  function totalMateriais() {
+    atualizarCustosMateriais();
+    return [...materiaisLista.querySelectorAll('.material-card')].reduce(
+      (soma, row) => soma + custoMaterial(row),
+      0
+    );
+  }
+
+  // --- Complexidade ---
+  const complexidadeOpcoes = $('complexidadeOpcoes');
+  complexidadeOpcoes.addEventListener('change', () => {
+    complexidadeOpcoes.querySelectorAll('label').forEach((label) => {
+      label.classList.toggle('selected', label.querySelector('input').checked);
+    });
+    calcular();
+  });
+
+  function multiplicadorComplexidade() {
+    const checked = complexidadeOpcoes.querySelector('input:checked');
+    return checked ? parseFloat(checked.value) : 1;
+  }
+
+  // --- Extras (entrega, embrulho, enquadramento) ---
+  function setupExtra(checkboxId, valorWrapId) {
+    const checkbox = $(checkboxId);
+    const wrap = $(valorWrapId);
+    checkbox.addEventListener('change', () => {
+      wrap.style.display = checkbox.checked ? 'block' : 'none';
+      calcular();
+    });
+    wrap.querySelector('input').addEventListener('input', calcular);
+  }
+  setupExtra('entregaCheck', 'entregaValorWrap');
+  setupExtra('embrulhoCheck', 'embrulhoValorWrap');
+  setupExtra('enquadramentoCheck', 'enquadramentoValorWrap');
+
+  function valorExtra(checkboxId, inputId) {
+    return $(checkboxId).checked ? (parseFloat($(inputId).value) || 0) : 0;
+  }
+
+  // --- Urgência ---
+  const urgenciaCheck = $('urgenciaCheck');
+  const urgenciaValorWrap = $('urgenciaValorWrap');
+  const urgenciaHint = $('urgenciaHint');
+  urgenciaCheck.addEventListener('change', () => {
+    const ativo = urgenciaCheck.checked;
+    urgenciaValorWrap.style.display = ativo ? 'block' : 'none';
+    urgenciaHint.style.display = ativo ? 'block' : 'none';
+    calcular();
+  });
+  $('urgenciaPercent').addEventListener('input', calcular);
+
+  // --- Tempo de serviço, margem de lucro e margem de erro ---
+  $('tempoServico').addEventListener('input', calcular);
+  $('margemLucro').addEventListener('input', calcular);
+  $('margemErro').addEventListener('input', calcular);
+
+  // --- Cálculo principal ---
+  function calcular() {
+    const horas = parseFloat($('tempoServico').value) || 0;
+    const maoDeObra = horas * valorHora();
+    const materiais = totalMateriais();
+    const baseCusto = maoDeObra + materiais;
+
+    const mult = multiplicadorComplexidade();
+    const comComplexidade = baseCusto * mult;
+    const ajusteComplexidade = comComplexidade - baseCusto;
+
+    const entrega = valorExtra('entregaCheck', 'entregaValor');
+    const embrulho = valorExtra('embrulhoCheck', 'embrulhoValor');
+    const enquadramento = valorExtra('enquadramentoCheck', 'enquadramentoValor');
+    const extras = entrega + embrulho + enquadramento;
+
+    const subtotal1 = comComplexidade + extras;
+
+    const lucroPercent = parseFloat($('margemLucro').value) || 0;
+    const lucroValor = subtotal1 * (lucroPercent / 100);
+
+    const subtotal2 = subtotal1 + lucroValor;
+
+    const margemPercent = parseFloat($('margemErro').value) || 0;
+    const margemValor = subtotal2 * (margemPercent / 100);
+
+    const subtotal3 = subtotal2 + margemValor;
+
+    const urgenciaPercent = urgenciaCheck.checked ? (parseFloat($('urgenciaPercent').value) || 0) : 0;
+    const urgenciaValor = subtotal3 * (urgenciaPercent / 100);
+
+    const total = subtotal3 + urgenciaValor;
+
+    const breakdown = $('breakdown');
+    breakdown.innerHTML = '';
+    const linha = (label, valor) => {
+      const div = document.createElement('div');
+      div.innerHTML = `<span>${label}</span><span>${fmt(valor)}</span>`;
+      breakdown.appendChild(div);
+    };
+    linha('Mão de obra', maoDeObra);
+    linha('Materiais', materiais);
+    if (ajusteComplexidade > 0) linha(`Complexidade (x${mult})`, ajusteComplexidade);
+    if (entrega) linha('Entrega', entrega);
+    if (embrulho) linha('Embrulho pra presente', embrulho);
+    if (enquadramento) linha('Enquadramento', enquadramento);
+    if (lucroValor) linha(`Margem de lucro (${lucroPercent}%)`, lucroValor);
+    if (margemValor) linha(`Margem de erro (${margemPercent}%)`, margemValor);
+    if (urgenciaValor) linha(`Urgência (${urgenciaPercent}%)`, urgenciaValor);
+
+    $('totalFinal').textContent = fmt(total);
+  }
+
+  // --- Reset (mantém meta mensal e materiais cadastrados, só limpa o uso desta encomenda) ---
+  $('btnReset').addEventListener('click', () => {
+    $('tempoServico').value = '';
+    materiaisLista.querySelectorAll('.mat-qtdusada').forEach((i) => (i.value = ''));
+    complexidadeOpcoes.querySelectorAll('input').forEach((i) => (i.checked = false));
+    complexidadeOpcoes.querySelectorAll('label').forEach((l) => l.classList.remove('selected'));
+    ['entrega', 'embrulho', 'enquadramento'].forEach((nome) => {
+      $(nome + 'Check').checked = false;
+      $(nome + 'ValorWrap').style.display = 'none';
+      $(nome + 'Valor').value = '';
+    });
+    urgenciaCheck.checked = false;
+    urgenciaValorWrap.style.display = 'none';
+    urgenciaHint.style.display = 'none';
+    $('margemLucro').value = 20;
+    $('margemErro').value = 10;
+    calcular();
+  });
+
+  // --- Carregar config salva ---
+  function init() {
+    const config = loadConfig();
+    if (config.metaMensal) metaMensalEl.value = config.metaMensal;
+    if (config.horasSemana) horasSemanaEl.value = config.horasSemana;
+    if (config.diasMes) diasMesEl.value = config.diasMes;
+
+    if (config.materiaisFavoritos && config.materiaisFavoritos.length) {
+      config.materiaisFavoritos.forEach((m) => criarLinhaMaterial(m.nome, m.valor, m.qtdPacote));
+    } else {
+      criarLinhaMaterial('', '', '');
+    }
+
+    atualizarValorHora();
+    calcular();
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
