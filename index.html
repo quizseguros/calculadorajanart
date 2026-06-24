@@ -404,6 +404,13 @@
         <button class="btn-copiar" id="btnCopiar" type="button">Copiar mensagem</button>
       </div>
       <small class="hint copiado-feedback" id="copiadoFeedback">Mensagem copiada!</small>
+
+      <small class="hint" style="margin-top:16px">Prefere mandar uma proposta em PDF, mais formal? Gera aqui:</small>
+      <div class="orcamento-acoes" style="margin-top:8px">
+        <button class="btn-copiar" id="btnBaixarPDF" type="button">Baixar PDF</button>
+        <button class="btn-whatsapp" id="btnCompartilharPDF" type="button">Compartilhar PDF no WhatsApp</button>
+      </div>
+      <small class="hint" id="pdfFeedback" style="display:none"></small>
     </div>
   </div>
 
@@ -413,6 +420,7 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script>
 (function () {
   const STORAGE_KEY = 'janaina-art-calculadora-config';
@@ -660,6 +668,15 @@
   const orcamentoErro = $('orcamentoErro');
   const copiadoFeedback = $('copiadoFeedback');
 
+  function getItensIncluidos() {
+    const itens = [];
+    if (urgenciaCheck.checked) itens.push('Urgência');
+    if ($('entregaCheck').checked) itens.push('Entrega');
+    if ($('enquadramentoCheck').checked) itens.push('Enquadramento');
+    if ($('embrulhoCheck').checked) itens.push('Embrulho para presente');
+    return itens;
+  }
+
   function gerarImagemOrcamento(nome, dataFormatada) {
     const canvas = document.createElement('canvas');
     canvas.width = 1000;
@@ -698,6 +715,8 @@
     return canvas.toDataURL('image/png');
   }
 
+  let dadosOrcamentoAtual = null;
+
   $('btnGerarOrcamento').addEventListener('click', () => {
     const nome = $('orcNomeCliente').value.trim();
     const descricao = $('orcDescricao').value.trim();
@@ -721,11 +740,15 @@
     validoAte.setDate(validoAte.getDate() + 7);
     const validoAteFormatado = validoAte.toLocaleDateString('pt-BR');
 
+    const itensIncluidos = getItensIncluidos();
+    const linhaItens = itensIncluidos.length ? [`✅ Inclui: ${itensIncluidos.join(', ')}`] : [];
+
     const texto = [
       '✨ Orçamento — Janaina Art ✨',
       '',
       `👤 Cliente: ${nome}`,
       `🎨 Descrição: ${descricao}`,
+      ...linhaItens,
       '',
       `💰 Valor: ${fmt(ultimoTotal)}`,
       `📅 Prazo de entrega: ${prazo}`,
@@ -741,10 +764,154 @@
     orcamentoTexto.textContent = texto;
     orcamentoResultado.style.display = 'block';
     copiadoFeedback.style.display = 'none';
+    $('pdfFeedback').style.display = 'none';
+
+    dadosOrcamentoAtual = {
+      nome,
+      descricao,
+      prazo,
+      itensIncluidos,
+      valorFormatado: fmt(ultimoTotal),
+      hojeFormatado,
+      validoAteFormatado,
+    };
   });
 
   $('btnWhatsapp').addEventListener('click', () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(orcamentoTexto.textContent)}`, '_blank');
+  });
+
+  // --- PDF da proposta ---
+  function gerarPDFOrcamento(dados) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margem = 16;
+
+    doc.setFillColor(181, 112, 79);
+    doc.rect(0, 0, pageWidth, 38, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(12);
+    doc.text('J A N A I N A   A R T', margem, 16);
+    doc.setFontSize(26);
+    doc.text('Proposta de Orçamento', margem, 30);
+
+    let y = 54;
+    doc.setTextColor(43, 38, 34);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`Cliente: ${dados.nome}`, margem, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(107, 98, 88);
+    doc.text(`Data: ${dados.hojeFormatado}`, pageWidth - margem, y, { align: 'right' });
+
+    y += 10;
+    doc.setDrawColor(230, 221, 210);
+    doc.line(margem, y, pageWidth - margem, y);
+
+    y += 10;
+    doc.setTextColor(181, 112, 79);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('DESCRIÇÃO DO PROJETO', margem, y);
+    y += 7;
+    doc.setTextColor(43, 38, 34);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    const descricaoLinhas = doc.splitTextToSize(dados.descricao, pageWidth - margem * 2);
+    doc.text(descricaoLinhas, margem, y);
+    y += descricaoLinhas.length * 6 + 8;
+
+    if (dados.itensIncluidos.length) {
+      doc.setTextColor(181, 112, 79);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('ITENS INCLUSOS', margem, y);
+      y += 7;
+      doc.setTextColor(43, 38, 34);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      dados.itensIncluidos.forEach((item) => {
+        doc.text(`• ${item}`, margem, y);
+        y += 6;
+      });
+      y += 4;
+    }
+
+    doc.setFillColor(241, 227, 216);
+    doc.roundedRect(margem, y, pageWidth - margem * 2, 26, 3, 3, 'F');
+    doc.setTextColor(107, 98, 88);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('VALOR TOTAL', margem + 8, y + 10);
+    doc.setTextColor(181, 112, 79);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text(dados.valorFormatado, margem + 8, y + 20);
+    y += 36;
+
+    doc.setTextColor(43, 38, 34);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`Prazo de entrega: ${dados.prazo}`, margem, y);
+    y += 14;
+
+    doc.setDrawColor(230, 221, 210);
+    doc.line(margem, y, pageWidth - margem, y);
+    y += 8;
+
+    doc.setTextColor(107, 98, 88);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    const observacoes = [
+      'O prazo pode variar um pouco dependendo da demanda do momento — qualquer mudança é avisada com antecedência.',
+      `Esse valor é válido até ${dados.validoAteFormatado}.`,
+      'Se o pedido mudar (tamanho, estilo ou algum extra), o valor pode ser ajustado.',
+    ];
+    observacoes.forEach((obs) => {
+      const linhas = doc.splitTextToSize(`• ${obs}`, pageWidth - margem * 2);
+      doc.text(linhas, margem, y);
+      y += linhas.length * 5 + 2;
+    });
+
+    y += 10;
+    doc.setTextColor(181, 112, 79);
+    doc.setFont('times', 'italic');
+    doc.setFontSize(13);
+    doc.text('Vou cuidar do seu desenho com todo carinho!', margem, y);
+
+    return doc;
+  }
+
+  function nomeArquivoPDF(nome) {
+    return `orcamento-${nome.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+  }
+
+  $('btnBaixarPDF').addEventListener('click', () => {
+    if (!dadosOrcamentoAtual) return;
+    gerarPDFOrcamento(dadosOrcamentoAtual).save(nomeArquivoPDF(dadosOrcamentoAtual.nome));
+  });
+
+  $('btnCompartilharPDF').addEventListener('click', async () => {
+    if (!dadosOrcamentoAtual) return;
+    const pdfFeedback = $('pdfFeedback');
+    const doc = gerarPDFOrcamento(dadosOrcamentoAtual);
+    const nomeArquivo = nomeArquivoPDF(dadosOrcamentoAtual.nome);
+    const blob = doc.output('blob');
+    const file = new File([blob], nomeArquivo, { type: 'application/pdf' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Orçamento Janaina Art' });
+        return;
+      } catch (e) {
+        // usuário cancelou o compartilhamento — cai no fallback de baixar
+      }
+    }
+    doc.save(nomeArquivo);
+    pdfFeedback.textContent = 'Esse navegador não compartilha PDF direto — o arquivo foi baixado, é só anexar no WhatsApp.';
+    pdfFeedback.style.display = 'block';
   });
 
   $('btnCopiar').addEventListener('click', async () => {
@@ -786,6 +953,8 @@
     orcamentoErro.style.display = 'none';
     orcamentoImagem.removeAttribute('src');
     btnBaixarImagem.removeAttribute('href');
+    $('pdfFeedback').style.display = 'none';
+    dadosOrcamentoAtual = null;
     calcular();
   });
 
