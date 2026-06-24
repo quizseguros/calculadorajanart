@@ -233,6 +233,14 @@
   .btn-copiar { background: var(--ink); color: var(--bg); }
 
   .copiado-feedback { display: none; text-align: center; color: var(--accent); margin-top: 8px; }
+
+  .orcamento-imagem {
+    display: block;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
@@ -385,6 +393,11 @@
     <small class="hint orcamento-erro" id="orcamentoErro" style="display:none">Preenche nome do cliente, descrição e prazo antes de gerar.</small>
 
     <div id="orcamentoResultado" style="display:none; margin-top:16px">
+      <small class="hint">Manda a imagem primeiro, depois cola a mensagem aqui embaixo — assim chega bonito pro cliente.</small>
+      <img id="orcamentoImagem" class="orcamento-imagem" alt="Imagem do orçamento">
+      <div class="orcamento-acoes" style="margin-top:8px; margin-bottom:12px">
+        <a class="btn-copiar" id="btnBaixarImagem" download="orcamento.png">Baixar imagem</a>
+      </div>
       <div class="orcamento-preview" id="orcamentoTexto"></div>
       <div class="orcamento-acoes">
         <button class="btn-whatsapp" id="btnWhatsapp" type="button">Compartilhar no WhatsApp</button>
@@ -642,8 +655,48 @@
   // --- Gerar orçamento (só o que o cliente precisa ver) ---
   const orcamentoResultado = $('orcamentoResultado');
   const orcamentoTexto = $('orcamentoTexto');
+  const orcamentoImagem = $('orcamentoImagem');
+  const btnBaixarImagem = $('btnBaixarImagem');
   const orcamentoErro = $('orcamentoErro');
   const copiadoFeedback = $('copiadoFeedback');
+
+  function gerarImagemOrcamento(nome, dataFormatada) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1000;
+    canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#f7f3ed';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#b5704f';
+    ctx.fillRect(0, 0, canvas.width, 14);
+
+    ctx.fillStyle = '#b5704f';
+    ctx.font = '600 26px Georgia, "Times New Roman", serif';
+    ctx.fillText('J A N A I N A   A R T', 60, 100);
+
+    ctx.fillStyle = '#2b2622';
+    ctx.font = '700 76px Georgia, "Times New Roman", serif';
+    ctx.fillText('Orçamento', 58, 200);
+
+    ctx.strokeStyle = '#e6ddd2';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(60, 340);
+    ctx.lineTo(940, 340);
+    ctx.stroke();
+
+    ctx.fillStyle = '#2b2622';
+    ctx.font = '600 34px -apple-system, "Segoe UI", Arial, sans-serif';
+    ctx.fillText(`Cliente: ${nome}`, 60, 400);
+
+    ctx.fillStyle = '#6b6258';
+    ctx.font = '400 26px -apple-system, "Segoe UI", Arial, sans-serif';
+    ctx.fillText(dataFormatada, 60, 440);
+
+    return canvas.toDataURL('image/png');
+  }
 
   $('btnGerarOrcamento').addEventListener('click', () => {
     const nome = $('orcNomeCliente').value.trim();
@@ -656,6 +709,13 @@
       return;
     }
     orcamentoErro.style.display = 'none';
+
+    const hoje = new Date();
+    const hojeFormatado = hoje.toLocaleDateString('pt-BR');
+    const imagemUrl = gerarImagemOrcamento(nome, hojeFormatado);
+    orcamentoImagem.src = imagemUrl;
+    btnBaixarImagem.href = imagemUrl;
+    btnBaixarImagem.download = `orcamento-${nome.replace(/\s+/g, '-').toLowerCase()}.png`;
 
     const validoAte = new Date();
     validoAte.setDate(validoAte.getDate() + 7);
@@ -724,6 +784,8 @@
     $('orcPrazo').value = '';
     orcamentoResultado.style.display = 'none';
     orcamentoErro.style.display = 'none';
+    orcamentoImagem.removeAttribute('src');
+    btnBaixarImagem.removeAttribute('href');
     calcular();
   });
 
